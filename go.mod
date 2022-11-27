@@ -1,4 +1,4 @@
-module gihthub.com/keddad/sif
+module github.com/keddad/sif
 
 go 1.18
 
