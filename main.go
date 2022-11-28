@@ -1,27 +1,17 @@
 package main
 
 import (
-	"log"
+	"flag"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/keddad/sif/bazel"
 )
 
-type cmdArgs struct {
-	label         string   `required:"true" short:"l"`
-	workspacePath string   `description:"Path to Bazel workspace" default:"." short:"wp"`
-	isVebrose     bool     `default:"false" short:"v"`
-	bazelArgs     []string `long:"Additonal Bazel arguments" positional-args:`
-}
-
 func main() {
-	var args cmdArgs
-	parser := flags.NewParser(&args, flags.Default)
-	_, err := parser.Parse()
+	label := flag.String("label", "//main:hello-greet", "Label of target to cleanup")
+	workspacePath := flag.String("workspace", "test/cppexample/", "Workspace path")
+	verboseFlag := flag.Bool("v", true, "")
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	bazelArgs := flag.Args()
 
-	bazel.BuildTarget(args.label, args.workspacePath, args.bazelArgs, args.isVebrose)
+	bazel.BuildTarget(*label, *workspacePath, bazelArgs, *verboseFlag)
 }

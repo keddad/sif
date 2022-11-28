@@ -12,3 +12,5 @@
 *.out
 
 sif
+test/cppexample/bazel-*
+.idea

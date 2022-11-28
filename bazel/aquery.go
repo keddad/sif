@@ -11,7 +11,7 @@ type Target struct {
 }
 
 func BuildTarget(label string, workspacePath string, envArgs []string, verbose bool) error {
-	cmdArgs := []string{"build", workspacePath}
+	cmdArgs := []string{"build", label}
 	cmdArgs = append(cmdArgs, envArgs...)
 
 	cmd := exec.Command("bazel", cmdArgs...)
@@ -21,7 +21,12 @@ func BuildTarget(label string, workspacePath string, envArgs []string, verbose b
 
 	if err != nil && verbose {
 		log.Printf("Cannot build target %s\n", label)
-		log.Println(out)
+		log.Println(string(out))
+	}
+
+	if verbose {
+		log.Printf("Building %s in workspace %s", label, workspacePath)
+		log.Println(string(out))
 	}
 
 	return err
