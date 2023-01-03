@@ -19,7 +19,7 @@ func BuildTarget(label string, workspacePath string, envArgs []string, verbose b
 
 	out, err := cmd.CombinedOutput()
 
-	if err != nil && verbose {
+	if err != nil {
 		log.Printf("Cannot build target %s\n", label)
 		log.Println(string(out))
 	}
