@@ -10,11 +10,16 @@ import (
 )
 
 func main() {
-	label := flag.String("label", "//main:hello-greet", "Label of target to cleanup")
-	workspacePath := flag.String("workspace", "test/cppexample/", "Workspace path")
+	label := flag.String("label", "not-specified-lol", "Label of target to cleanup")
+	workspacePath := flag.String("workspace", ".", "Workspace path")
 	verboseFlag := flag.Bool("v", false, "")
 
 	bazelArgs := flag.Args()
+	flag.Parse()
+
+	if *label == "not-specified-lol" {
+		log.Panic("-label argument is mandatory!")
+	}
 
 	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(*workspacePath, *label)
 
@@ -34,7 +39,15 @@ func main() {
 		panic(err)
 	}
 
-	print(origBuildFile)
+	targetRule := edit.FindRuleByName(origBuildFile, target)
+
+	depsList, err := bazel.ExtractEntries(targetRule, "deps")
+
+	if err != nil {
+		panic(err)
+	}
+
+	print(depsList)
 
 	// Build target with Bazel
 	// This populates the cache to make further operations faster, and ensures target builds before changes
