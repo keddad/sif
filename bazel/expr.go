@@ -27,22 +27,59 @@ func listStrings(expr *build.AssignExpr) ([]string, error) {
 	return ret, nil
 }
 
-// extractEntriesFromRule extracts contents of param (which should be an array, like deps) from Rule.
-func extractEntriesFromRule(rule *build.Rule, name string) ([]string, error) {
+// Buildtool's API is quite poor, since it is not really public and is mostly designed to be used by Google's CLI apps
+// If it wasn't, this entire file would be redundant. Still better than writing it all from scratch
+func findAssignExpr(rule *build.Rule, name string) *build.AssignExpr {
 	for _, expr := range rule.Call.List {
 		// Dynamic casts from interface to implementation are always nasty
 
 		switch expr.(type) {
 		case *build.AssignExpr:
 			if expr.(*build.AssignExpr).LHS.(*build.Ident).Name == name {
-				return listStrings(expr.(*build.AssignExpr))
+				return expr.(*build.AssignExpr)
 			}
 		default:
 			continue
 		}
 	}
 
-	return nil, errors.New("no such param")
+	return nil
+}
+
+// extractEntriesFromRule extracts contents of param (which should be an array, like deps) from Rule.
+func extractEntriesFromRule(rule *build.Rule, name string) ([]string, error) {
+	expr := findAssignExpr(rule, name)
+
+	if expr == nil {
+		return nil, errors.New("no such param")
+	}
+
+	return listStrings(expr)
+}
+
+// dumbListRemoval removes a StringExpr from ListExpr without package checks and pointer magic
+// Pretty much a simplified copy of RemoveFromList
+func dumbListRemoval(li *build.ListExpr, toDelete string) error {
+	var all []build.Expr
+	deleted := false
+
+	for _, elem := range li.List {
+		if str, ok := elem.(*build.StringExpr); ok {
+			if str.Token == toDelete {
+				deleted = true
+				continue
+			}
+		}
+		all = append(all, elem)
+	}
+
+	li.List = all
+
+	if !deleted {
+		return errors.New("no such list element")
+	}
+
+	return nil
 }
 
 // ExtractEntriesFromFile extracts contents of param (which should be an array, like deps) of Rule from file contents.
@@ -62,4 +99,29 @@ func ExtractEntriesFromFile(contents []byte, ruleName string, paramName string) 
 	}
 
 	return depsList, nil
+}
+
+func DeleteEntryFromFile(contents []byte, ruleName string, paramName string, optionToDelete string) ([]byte, error) {
+	origBuildFile, err := build.ParseBuild("", contents)
+
+	if err != nil {
+		return nil, err
+	}
+
+	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
+
+	targetExpr := findAssignExpr(targetRule, paramName)
+
+	if targetExpr == nil {
+		return nil, errors.New("no such param")
+	}
+
+	if targetExpr.RHS == nil {
+		return nil, errors.New("wtf") // What a Terrible Failure! Probably can't happen with valid file
+	}
+
+	err = dumbListRemoval(targetExpr.RHS.(*build.ListExpr), optionToDelete)
+	newFile := build.Format(origBuildFile)
+
+	return newFile, err
 }
