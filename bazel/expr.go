@@ -3,6 +3,7 @@ package bazel
 import (
 	"errors"
 	"github.com/bazelbuild/buildtools/build"
+	"github.com/bazelbuild/buildtools/edit"
 )
 
 func listStrings(expr *build.AssignExpr) ([]string, error) {
@@ -26,8 +27,8 @@ func listStrings(expr *build.AssignExpr) ([]string, error) {
 	return ret, nil
 }
 
-// ExtractEntries extracts contents of param (which should be an array, like deps) from Rule.
-func ExtractEntries(rule *build.Rule, name string) ([]string, error) {
+// extractEntriesFromRule extracts contents of param (which should be an array, like deps) from Rule.
+func extractEntriesFromRule(rule *build.Rule, name string) ([]string, error) {
 	for _, expr := range rule.Call.List {
 		// Dynamic casts from interface to implementation are always nasty
 
@@ -42,4 +43,23 @@ func ExtractEntries(rule *build.Rule, name string) ([]string, error) {
 	}
 
 	return nil, errors.New("no such param")
+}
+
+// ExtractEntriesFromFile extracts contents of param (which should be an array, like deps) of Rule from file contents.
+func ExtractEntriesFromFile(contents []byte, ruleName string, paramName string) ([]string, error) {
+	origBuildFile, err := build.ParseBuild("", contents)
+
+	if err != nil {
+		return nil, err
+	}
+
+	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
+
+	depsList, err := extractEntriesFromRule(targetRule, paramName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return depsList, nil
 }

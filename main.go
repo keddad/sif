@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit"
 	"github.com/keddad/sif/bazel"
 	"io/ioutil"
@@ -33,19 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	origBuildFile, err := build.ParseBuild(buildFile, content)
-
-	if err != nil {
-		panic(err)
-	}
-
-	targetRule := edit.FindRuleByName(origBuildFile, target)
-
-	depsList, err := bazel.ExtractEntries(targetRule, "deps")
-
-	if err != nil {
-		panic(err)
-	}
+	depsList, err := bazel.ExtractEntriesFromFile(content, target, "deps")
 
 	print(depsList)
 
