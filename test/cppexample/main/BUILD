@@ -6,11 +6,18 @@ cc_library(
     hdrs = ["hello-greet.h"],
 )
 
+cc_library(
+    name = "useless",
+    srcs = ["useless.cc"],
+    hdrs = ["useless.h"],
+)
+
 cc_binary(
     name = "hello-world",
     srcs = ["hello-world.cc"],
     deps = [
         ":hello-greet",
+        ":useless",
         "//lib:hello-time",
     ],
 )

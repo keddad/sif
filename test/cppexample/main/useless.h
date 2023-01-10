@@ -1,0 +1,1 @@
+char trash* = "trash";
