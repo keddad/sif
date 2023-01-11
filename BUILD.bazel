@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "sif_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/keddad/sif",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//bazel",
+        "@com_github_bazelbuild_buildtools//edit:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "sif",
+    embed = [":sif_lib"],
+    visibility = ["//visibility:public"],
+)
