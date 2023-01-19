@@ -15,7 +15,7 @@ func TestExtractEntriesFromFile(t *testing.T) {
 
 	depsList, err := ExtractEntriesFromFile(content, "hello-world", "deps")
 
-	if !reflect.DeepEqual(depsList, []string{"\":hello-greet\"", "\"//lib:hello-time\""}) {
+	if !reflect.DeepEqual(depsList, []string{"\":hello-greet\"", "\":useless\"", "\"//lib:hello-time\""}) {
 		t.Fail()
 	}
 }
@@ -35,7 +35,7 @@ func TestDeleteEntryFromFile(t *testing.T) {
 
 	depsList, err := ExtractEntriesFromFile(newContent, "hello-world", "deps")
 
-	if !reflect.DeepEqual(depsList, []string{"\":hello-greet\""}) {
+	if !reflect.DeepEqual(depsList, []string{"\":hello-greet\"", "\":useless\""}) {
 		t.Fail()
 	}
 }
