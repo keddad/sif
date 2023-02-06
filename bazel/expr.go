@@ -2,6 +2,8 @@ package bazel
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/bazelbuild/buildtools/build"
 	"github.com/bazelbuild/buildtools/edit"
 )
@@ -124,4 +126,29 @@ func DeleteEntryFromFile(contents []byte, ruleName string, paramName string, opt
 	newFile := build.Format(origBuildFile)
 
 	return newFile, err
+}
+
+// Returns a rule of a taget (cc_binary, etc)
+func getTargetRuleKind(contents []byte, ruleName string) (string, error) {
+	origBuildFile, err := build.ParseBuild("", contents)
+
+	if err != nil {
+		return "", err
+	}
+
+	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
+
+	return targetRule.Kind(), nil
+}
+
+func IsTest(contents []byte, ruleName string) (bool, error) {
+	name, err := getTargetRuleKind(contents, ruleName)
+
+	if err != nil {
+		return false, err
+	}
+
+	// This is not ideal, but it mostly works
+	// Should probably check for actual providers, but it can break with test_suite (?)
+	return strings.Contains("test", name), nil
 }

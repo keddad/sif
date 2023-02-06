@@ -33,9 +33,27 @@ func TestDeleteEntryFromFile(t *testing.T) {
 		panic(err)
 	}
 
-	depsList, err := ExtractEntriesFromFile(newContent, "hello-world", "deps")
+	depsList, _ := ExtractEntriesFromFile(newContent, "hello-world", "deps")
 
 	if !reflect.DeepEqual(depsList, []string{"\":hello-greet\"", "\":useless\""}) {
+		t.Fail()
+	}
+}
+
+func TestGetTargetRule(t *testing.T) {
+	content, err := ioutil.ReadFile("../test/cppexample/main/BUILD")
+
+	if err != nil {
+		panic(err)
+	}
+
+	name, err := getTargetRuleKind(content, "hello-world")
+
+	if err != nil {
+		panic(err)
+	}
+
+	if name != "cc_binary" {
 		t.Fail()
 	}
 }

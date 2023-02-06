@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/bazelbuild/buildtools/edit"
-	"github.com/keddad/sif/bazel"
 	"io/ioutil"
 	"log"
+
+	"github.com/bazelbuild/buildtools/edit"
+	"github.com/keddad/sif/bazel"
 )
 
 // Optimize performs optimization itself
 // Returns true if optimizations took place
-func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []string) (bool, error) {
+func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
 	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(*workspacePath, *label)
 
 	if verbose {
@@ -27,7 +28,7 @@ func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []str
 
 	fmt.Printf("Working with %s in workspace %s, optimizing param %s. Analyzing those options:\n", *label, *workspacePath, *param)
 
-	err = bazel.BuildTarget(*label, *workspacePath, bazelArgs, verbose)
+	err = bazel.CheckTarget(*label, *workspacePath, bazelArgs, verbose)
 
 	if err != nil {
 		return false, err
@@ -52,7 +53,7 @@ func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []str
 			return false, err
 		}
 
-		err = bazel.BuildTarget(*label, *workspacePath, bazelArgs, verbose)
+		err = bazel.CheckTarget(*label, *workspacePath, bazelArgs, verbose)
 
 		if err == nil {
 			log.Printf("%s dep is redundant, removing it", elem)

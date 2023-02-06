@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 )
 
-func BuildTarget(label string, workspacePath string, envArgs []string, verbose bool) error {
+// If target is of test rule, runs bazel test
+// Otherwise build target
+func CheckTarget(label string, workspacePath string, envArgs []string, verbose bool) error {
 	cmdArgs := []string{"build", label}
 	cmdArgs = append(cmdArgs, envArgs...)
 
