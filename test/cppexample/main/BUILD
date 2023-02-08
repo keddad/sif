@@ -1,8 +1,16 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
+filegroup(
+    name = "hello-greet-fg",
+    srcs = [
+        "hello-greet.cc",
+        "useless.cc",
+    ]
+)
+
 cc_library(
     name = "hello-greet",
-    srcs = ["hello-greet.cc"],
+    srcs = [":hello-greet-fg"],
     hdrs = ["hello-greet.h"],
 )
 
