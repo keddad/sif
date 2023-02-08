@@ -2,6 +2,7 @@ package bazel
 
 import (
 	"errors"
+	"io/ioutil"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
@@ -141,8 +142,16 @@ func getTargetRuleKind(contents []byte, ruleName string) (string, error) {
 	return targetRule.Kind(), nil
 }
 
-func IsTest(contents []byte, ruleName string) (bool, error) {
-	name, err := getTargetRuleKind(contents, ruleName)
+func IsTest(label string, workspace string) (bool, error) {
+	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(workspace, label)
+
+	content, err := ioutil.ReadFile(buildFile)
+
+	if err != nil {
+		return false, err
+	}
+
+	name, err := getTargetRuleKind(content, target)
 
 	if err != nil {
 		return false, err

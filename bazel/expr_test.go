@@ -40,20 +40,14 @@ func TestDeleteEntryFromFile(t *testing.T) {
 	}
 }
 
-func TestGetTargetRule(t *testing.T) {
-	content, err := ioutil.ReadFile("../test/cppexample/main/BUILD")
+func TestIsTest(t *testing.T) {
+	res, err := IsTest("//main:hello-world", "../test/cppexample/")
 
 	if err != nil {
 		panic(err)
 	}
 
-	name, err := getTargetRuleKind(content, "hello-world")
-
-	if err != nil {
-		panic(err)
-	}
-
-	if name != "cc_binary" {
+	if res {
 		t.Fail()
 	}
 }

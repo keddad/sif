@@ -11,11 +11,11 @@ import (
 
 // Optimize performs optimization itself
 // Returns true if optimizations took place
-func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
-	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(*workspacePath, *label)
+func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
+	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(workspacePath, label)
 
 	if verbose {
-		log.Printf("\nBuildfile: %s\nTarget: %s\n", (*workspacePath)+buildFile, target)
+		log.Printf("\nBuildfile: %s\nTarget: %s\n", (workspacePath)+buildFile, target)
 	}
 
 	content, err := ioutil.ReadFile(buildFile)
@@ -24,15 +24,29 @@ func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []str
 		return false, err
 	}
 
-	depsList, err := bazel.ExtractEntriesFromFile(content, target, *param)
-
-	fmt.Printf("Working with %s in workspace %s, optimizing param %s. Analyzing those options:\n", *label, *workspacePath, *param)
-
-	err = bazel.CheckTarget(*label, *workspacePath, bazelArgs, verbose)
+	depsList, err := bazel.ExtractEntriesFromFile(content, target, param)
 
 	if err != nil {
 		return false, err
 	}
+
+	err = bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
+
+	if err != nil {
+		fmt.Printf("Can't build optimization target %s", label)
+		return false, err
+	}
+
+	for _, elem := range testLabels {
+		err = bazel.CheckTarget(elem, workspacePath, bazelArgs, verbose)
+
+		if err != nil {
+			fmt.Printf("Can't build test target %s", label)
+			return false, err
+		}
+	}
+
+	fmt.Printf("Working with %s in workspace %s, optimizing param %s.", label, workspacePath, param)
 
 	removed := make([]string, 0)
 
@@ -41,7 +55,7 @@ func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []str
 			log.Printf("Trying to remove %s", elem)
 		}
 
-		contentWithoutElem, err := bazel.DeleteEntryFromFile(content, target, *param, elem)
+		contentWithoutElem, err := bazel.DeleteEntryFromFile(content, target, param, elem)
 
 		if err != nil {
 			return false, err
@@ -53,7 +67,21 @@ func Optimize(label, workspacePath, param *string, verbose bool, bazelArgs []str
 			return false, err
 		}
 
-		err = bazel.CheckTarget(*label, *workspacePath, bazelArgs, verbose)
+		err = bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
+
+		if err == nil {
+			for _, testLabel := range testLabels {
+				err = bazel.CheckTarget(testLabel, workspacePath, bazelArgs, verbose)
+
+				if err != nil {
+					if verbose {
+						log.Printf("Test label %s failed when removing dep %s", testLabel, elem)
+					}
+
+					break
+				}
+			}
+		}
 
 		if err == nil {
 			log.Printf("%s dep is redundant, removing it", elem)
