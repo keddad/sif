@@ -139,6 +139,10 @@ func getTargetRuleKind(contents []byte, ruleName string) (string, error) {
 
 	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
 
+	if targetRule == nil {
+		return "", errors.New("no such rule")
+	}
+
 	return targetRule.Kind(), nil
 }
 

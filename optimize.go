@@ -33,7 +33,7 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 	err = bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
 
 	if err != nil {
-		fmt.Printf("Can't build optimization target %s", label)
+		fmt.Printf("Can't build optimization target %s\n", label)
 		return false, err
 	}
 
@@ -41,7 +41,7 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 		err = bazel.CheckTarget(elem, workspacePath, bazelArgs, verbose)
 
 		if err != nil {
-			fmt.Printf("Can't build test target %s", label)
+			fmt.Printf("Can't build test target %s\n", label)
 			return false, err
 		}
 	}

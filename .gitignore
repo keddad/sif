@@ -15,3 +15,6 @@ sif
 test/cppexample/bazel-*
 .idea
 bazel-*
+.pytest*
+__pycache__
+.vscode
