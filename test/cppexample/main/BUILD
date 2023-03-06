@@ -29,3 +29,12 @@ cc_binary(
         "//lib:hello-time",
     ],
 )
+
+cc_binary(
+    name = "hello-world-nouseless",
+    srcs = ["hello-world.cc"],
+    deps = [
+        ":hello-greet",
+        "//lib:hello-time",
+    ],
+)
