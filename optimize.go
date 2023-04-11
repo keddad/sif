@@ -11,26 +11,14 @@ import (
 
 // Optimize performs optimization itself
 // Returns true if optimizations took place
-func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
+func Optimize(label, workspacePath string, params []string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
 	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(workspacePath, label)
 
 	if verbose {
 		log.Printf("\nBuildfile: %s\nTarget: %s\n", (workspacePath)+buildFile, target)
 	}
 
-	content, err := ioutil.ReadFile(buildFile)
-
-	if err != nil {
-		return false, err
-	}
-
-	depsList, err := bazel.ExtractEntriesFromFile(content, target, param)
-
-	if err != nil {
-		return false, err
-	}
-
-	err = bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
+	err := bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
 
 	if err != nil {
 		fmt.Printf("Can't build optimization target %s\n", label)
@@ -46,7 +34,44 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 		}
 	}
 
-	fmt.Printf("Working with %s in workspace %s, optimizing param %s.", label, workspacePath, param)
+	removedDeps := false
+
+	for _, param := range params {
+		log.Printf("Working with %s in workspace %s, optimizing param %s.\n", label, workspacePath, param)
+
+		removed, err := optimizeParam(buildFile, target, param, label, workspacePath, verbose, bazelArgs, testLabels)
+
+		if err != nil {
+			return false, err
+		}
+
+		if len(removed) != 0 {
+			log.Print("Removed following dependencies:")
+			for _, elem := range removed {
+				log.Print(elem)
+			}
+
+			removedDeps = true
+		} else {
+			log.Printf("Removed no dependencies for param.")
+		}
+	}
+
+	return removedDeps, nil
+}
+
+func optimizeParam(buildFile, target, param, label, workspacePath string, verbose bool, bazelArgs, testLabels []string) ([]string, error) {
+	content, err := ioutil.ReadFile(buildFile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	depsList, err := bazel.ExtractEntriesFromFile(content, target, param)
+
+	if err != nil {
+		return nil, err
+	}
 
 	removed := make([]string, 0)
 
@@ -58,13 +83,13 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 		contentWithoutElem, err := bazel.DeleteEntryFromFile(content, target, param, elem)
 
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 
 		err = ioutil.WriteFile(buildFile, contentWithoutElem, 0)
 
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 
 		err = bazel.CheckTarget(label, workspacePath, bazelArgs, verbose)
@@ -84,7 +109,10 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 		}
 
 		if err == nil {
-			log.Printf("%s dep is redundant, removing it", elem)
+			if verbose {
+				log.Printf("%s dep is redundant, removing it", elem)
+			}
+
 			content = contentWithoutElem
 			removed = append(removed, elem)
 		} else if verbose {
@@ -95,18 +123,8 @@ func Optimize(label, workspacePath, param string, verbose bool, bazelArgs []stri
 	err = ioutil.WriteFile(buildFile, content, 0)
 
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	if len(removed) != 0 {
-		log.Print("Removed following dependencies:")
-		for _, elem := range removed {
-			println(elem)
-		}
-
-		return true, nil
-	} else {
-		log.Print("Removed no dependencies.")
-		return false, nil
-	}
+	return removed, err
 }

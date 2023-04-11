@@ -38,7 +38,7 @@ class CppOptimizationTests(unittest.TestCase):
 
     def test_noopt(self):
         res = subprocess.run([self.sif, "--workspace", self.workspace,
-                             "--label", "//main:hello-world-nouseless", "--param", "deps"])
+                             "--label", "//main:hello-world-nouseless", "--params", "deps"])
 
         self.assertEqual(res.returncode, 0)
 
@@ -49,7 +49,7 @@ class CppOptimizationTests(unittest.TestCase):
 
     def test_simpleopt(self):
         res = subprocess.run([self.sif, "--workspace", self.workspace,
-                             "--label", "//main:hello-world", "--param", "deps"])
+                             "--label", "//main:hello-world", "--params", "deps"])
 
         self.assertEqual(res.returncode, 0)
 
@@ -58,9 +58,21 @@ class CppOptimizationTests(unittest.TestCase):
 
     def test_checkers(self):
         res = subprocess.run([self.sif, "--workspace", self.workspace,
-                             "--label", "//main:hello-greet-fg", "--param", "srcs", "--check", "//main:hello-greet,//main:hello-world"])
+                             "--label", "//main:hello-greet-fg", "--params", "srcs", "--check", "//main:hello-greet,//main:hello-world"])
         
         self.assertEqual(res.returncode, 0)
 
         self.assertNotIn(
             "\"useless.cc\",", (Path(self.workspace) / self.build_file).read_text())
+        
+    def test_multiparam(self):
+        res = subprocess.run([self.sif, "--workspace", self.workspace,
+                             "--label", "//main:hello-greet", "--params", "srcs,hdrs", "--check", "//main:hello-greet"])
+        
+        self.assertEqual(res.returncode, 0)
+
+        self.assertNotIn(
+            "\"another-useless.cc\"", (Path(self.workspace) / self.build_file).read_text())
+        
+        self.assertNotIn(
+            "\"another-useless.h\"", (Path(self.workspace) / self.build_file).read_text())

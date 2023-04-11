@@ -13,7 +13,7 @@ func main() {
 	workspacePath := flag.String("workspace", ".", "Workspace path")
 	testTargets := flag.String("check", "", "Labels to check when modifying target. Separate with ,")
 	verboseFlag := flag.Bool("v", false, "")
-	param := flag.String("param", "", "Param to optimize")
+	params := flag.String("params", "", "Params to optimize for. Separate with ,")
 
 	bazelArgs := flag.Args()
 	flag.Parse()
@@ -30,11 +30,15 @@ func main() {
 		log.Panic("--label argument is mandatory!")
 	}
 
-	if *param == "" {
-		log.Panic("--param argument is mandatory!")
+	var optimizationParamList []string
+
+	if *params != "" {
+		optimizationParamList = strings.Split(*params, ",")
+	} else {
+		log.Panic("--params argument is mandatory!")
 	}
 
-	_, err := Optimize(*label, *workspacePath, *param, *verboseFlag, bazelArgs, testTargetsList)
+	_, err := Optimize(*label, *workspacePath, optimizationParamList, *verboseFlag, bazelArgs, testTargetsList)
 
 	if err != nil {
 		log.Fatalf("Optimization failed! %s", err)

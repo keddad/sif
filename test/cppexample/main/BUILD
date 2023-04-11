@@ -10,8 +10,8 @@ filegroup(
 
 cc_library(
     name = "hello-greet",
-    srcs = [":hello-greet-fg"],
-    hdrs = ["hello-greet.h"],
+    srcs = [":hello-greet-fg", "another-useless.cc"],
+    hdrs = ["hello-greet.h", "another-useless.h"],
 )
 
 cc_library(

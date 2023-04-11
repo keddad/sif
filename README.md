@@ -30,6 +30,6 @@ Usage example:
 Params:
 * --workspace: Path to workspace where targets are, if not current folder
 * --label: Label of target to optimize
-* --param: Param to optimize
+* --params: Params to optimize. Split with ","
 * --check: List of additional targets (tests) to ensure still compile (pass) while optimizing. Split with ","
 * -v: Verbose mode
