@@ -13,8 +13,8 @@ func main() {
 	testTargets := flag.String("check", "", "Labels to check when modifying target. Separate with ,")
 	verboseFlag := flag.Bool("v", false, "")
 	params := flag.String("params", "", "Params to optimize for. Separate with ,")
-	//recParams := flag.String("recparams", "", "Params to recursivly optimize dependency graph. Separate with ,")
-	//recBlacklist := flag.String("recblacklist", "", "Regexp to filter out unwanted recursive optimization targets")
+	recParams := flag.String("recparams", "", "Params to recursivly optimize dependency graph. Separate with ,")
+	recBlacklist := flag.String("recblacklist", "", "Regexp to filter out unwanted recursive optimization targets")
 
 	bazelArgs := flag.Args()
 	flag.Parse()
@@ -24,14 +24,15 @@ func main() {
 	}
 
 	testTargetsList := splitArgs(*testTargets)
-
 	optimizationParamList := splitArgs(*params)
+	recParamsList := splitArgs(*recParams)
 
 	if len(optimizationParamList) == 0 {
 		log.Panic("--params argument is mandatory!")
 	}
 
-	_, err := Optimize(*label, *workspacePath, optimizationParamList, *verboseFlag, bazelArgs, testTargetsList)
+	// That's a lot of arguments.
+	_, err := Optimize(*label, *workspacePath, optimizationParamList, *verboseFlag, bazelArgs, testTargetsList, recParamsList, *recBlacklist)
 
 	if err != nil {
 		log.Fatalf("Optimization failed! %s", err)

@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/bazelbuild/buildtools/edit"
+	"github.com/bazelbuild/buildtools/labels"
 	"github.com/keddad/sif/bazel"
 )
 
 // Optimize performs optimization itself
 // Returns true if optimizations took place
-func Optimize(label, workspacePath string, params []string, verbose bool, bazelArgs []string, testLabels []string) (bool, error) {
+func Optimize(label, workspacePath string, params []string, verbose bool, bazelArgs []string, testLabels []string, recParams []string, recBlaclist string) (bool, error) {
 	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(workspacePath, label)
 
 	if verbose {
@@ -42,6 +44,10 @@ func Optimize(label, workspacePath string, params []string, verbose bool, bazelA
 		removed, err := optimizeParam(buildFile, target, param, label, workspacePath, verbose, bazelArgs, testLabels)
 
 		if err != nil {
+			if err == bazel.ErrNoSuchParam {
+				continue
+			}
+
 			return false, err
 		}
 
@@ -57,7 +63,64 @@ func Optimize(label, workspacePath string, params []string, verbose bool, bazelA
 		}
 	}
 
+	recTarges, err := recTargets(buildFile, target, label, workspacePath, recParams, verbose)
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, target := range recTarges {
+
+		targetRemovedDeps, err := Optimize(target, workspacePath, params, verbose, bazelArgs, append(testLabels, label), recParams, recBlaclist)
+
+		if err != nil {
+			return false, err
+		}
+
+		removedDeps = removedDeps || targetRemovedDeps
+	}
+
 	return removedDeps, nil
+}
+
+func recTargets(buildFile, target, label, workspacePath string, recParams []string, verbose bool) ([]string, error) {
+	content, err := ioutil.ReadFile(buildFile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	targets := make([]string, 0)
+	currentRuleName := labels.Parse(label)
+
+	for _, param := range recParams {
+		paramTargets, err := bazel.ExtractEntriesFromFile(content, currentRuleName.Target, param)
+
+		if err != nil {
+			if err == bazel.ErrNoSuchParam {
+				continue
+			}
+
+			return targets, err
+		}
+
+		for _, target := range paramTargets {
+			target = target[1 : len(target)-1] // Targets are with quotes, ":target"
+
+			if !strings.HasPrefix(target, "//") && !strings.HasPrefix(target, "@") {
+				target = labels.ParseRelative(target, currentRuleName.Package).Format()
+			}
+
+			targets = append(targets, target)
+		}
+
+		if verbose {
+			log.Printf("Added labels %#v for target %s", paramTargets, param)
+		}
+
+	}
+
+	return targets, nil
 }
 
 func optimizeParam(buildFile, target, param, label, workspacePath string, verbose bool, bazelArgs, testLabels []string) ([]string, error) {

@@ -54,7 +54,7 @@ func extractEntriesFromRule(rule *build.Rule, name string) ([]string, error) {
 	expr := findAssignExpr(rule, name)
 
 	if expr == nil {
-		return nil, errors.New("no such param")
+		return nil, ErrNoSuchParam
 	}
 
 	return listStrings(expr)
@@ -116,7 +116,7 @@ func DeleteEntryFromFile(contents []byte, ruleName string, paramName string, opt
 	targetExpr := findAssignExpr(targetRule, paramName)
 
 	if targetExpr == nil {
-		return nil, errors.New("no such param")
+		return nil, ErrNoSuchParam
 	}
 
 	if targetExpr.RHS == nil {
@@ -140,7 +140,7 @@ func getTargetRuleKind(contents []byte, ruleName string) (string, error) {
 	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
 
 	if targetRule == nil {
-		return "", errors.New("no such rule")
+		return "", ErrNoSuchRule
 	}
 
 	return targetRule.Kind(), nil
