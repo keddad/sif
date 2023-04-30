@@ -24,7 +24,7 @@ go build .
 
 Usage example:
 ```
-./sif --workspace test/cppexample --label //main:hello-world --param deps
+./sif --workspace test/cppexample --label //main:hello-world --param deps,hdrs --recparams deps
 ```
 
 Params:
@@ -33,3 +33,5 @@ Params:
 * --params: Params to optimize. Split with ","
 * --check: List of additional targets (tests) to ensure still compile (pass) while optimizing. Split with ","
 * -v: Verbose mode
+* --recparams: Params to recursivly optimize dependency graph
+* --recblacklist: Regexp to filter out unwanted recursive optimization targets

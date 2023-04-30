@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"strings"
 )
 
 func main() {
@@ -14,27 +13,21 @@ func main() {
 	testTargets := flag.String("check", "", "Labels to check when modifying target. Separate with ,")
 	verboseFlag := flag.Bool("v", false, "")
 	params := flag.String("params", "", "Params to optimize for. Separate with ,")
+	//recParams := flag.String("recparams", "", "Params to recursivly optimize dependency graph. Separate with ,")
+	//recBlacklist := flag.String("recblacklist", "", "Regexp to filter out unwanted recursive optimization targets")
 
 	bazelArgs := flag.Args()
 	flag.Parse()
-
-	var testTargetsList []string
-
-	if *testTargets != "" {
-		testTargetsList = strings.Split(*testTargets, ",")
-	} else {
-		testTargetsList = make([]string, 0)
-	}
 
 	if *label == "not-specified-lol" {
 		log.Panic("--label argument is mandatory!")
 	}
 
-	var optimizationParamList []string
+	testTargetsList := splitArgs(*testTargets)
 
-	if *params != "" {
-		optimizationParamList = strings.Split(*params, ",")
-	} else {
+	optimizationParamList := splitArgs(*params)
+
+	if len(optimizationParamList) == 0 {
 		log.Panic("--params argument is mandatory!")
 	}
 
