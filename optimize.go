@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/bazelbuild/buildtools/edit"
@@ -14,6 +15,19 @@ import (
 // Optimize performs optimization itself
 // Returns true if optimizations took place
 func Optimize(label, workspacePath string, params []string, verbose bool, bazelArgs []string, testLabels []string, recParams []string, recBlaclist string) (bool, error) {
+	if recBlaclist != "" {
+		isInBlacklist, err := regexp.Match(recBlaclist, []byte(label))
+
+		if err != nil {
+			return false, err
+		}
+
+		if isInBlacklist {
+			log.Printf("Skipping label %s, blacklist", label)
+			return false, nil
+		}
+	}
+
 	buildFile, _, target := edit.InterpretLabelForWorkspaceLocation(workspacePath, label)
 
 	if verbose {

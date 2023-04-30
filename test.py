@@ -94,3 +94,17 @@ class CppOptimizationTests(unittest.TestCase):
                          (Path(self.workspace) / self.main_build_file).read_text())
         self.assertNotIn("\"another-useless.h\"",
                          (Path(self.workspace) / self.main_build_file).read_text())
+        
+    def test_recopt_blacklist(self):
+        res = subprocess.run([self.sif, "--workspace", self.workspace,
+                             "--label", "//main:hello-world", "--params", "deps,hdrs,srcs", "--recparams", "deps", "--recblacklist", "hello-greet"])
+
+        self.assertEqual(res.returncode, 0)
+
+        self.assertNotIn("\":useless\"", (Path(
+            self.workspace) / self.main_build_file).read_text())
+
+        self.assertIn("\"another-useless.cc\"",
+                         (Path(self.workspace) / self.main_build_file).read_text())
+        self.assertIn("\"another-useless.h\"",
+                         (Path(self.workspace) / self.main_build_file).read_text())
