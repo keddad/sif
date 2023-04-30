@@ -5,7 +5,7 @@ filegroup(
     srcs = [
         "hello-greet.cc",
         "useless.cc",
-    ]
+    ],
 )
 
 cc_library(
