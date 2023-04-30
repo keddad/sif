@@ -35,6 +35,13 @@ class CppOptimizationTests(unittest.TestCase):
         self.sif = get_sif()
 
     def tearDown(self):
+        # Otherwise Bazel servers from previous tests keep running, eventually causing OOM
+        res = subprocess.run(["bazel", "shutdown"],
+                             shell=True, cwd=self.workspace)
+        
+        if res.returncode != 0:
+            raise RuntimeError("Can't kill Bazel")
+
         shutil.rmtree(self.temp_dir)
 
     def test_noopt(self):
@@ -94,7 +101,7 @@ class CppOptimizationTests(unittest.TestCase):
                          (Path(self.workspace) / self.main_build_file).read_text())
         self.assertNotIn("\"another-useless.h\"",
                          (Path(self.workspace) / self.main_build_file).read_text())
-        
+
     def test_recopt_blacklist(self):
         res = subprocess.run([self.sif, "--workspace", self.workspace,
                              "--label", "//main:hello-world", "--params", "deps,hdrs,srcs", "--recparams", "deps", "--recblacklist", "hello-greet"])
@@ -105,6 +112,6 @@ class CppOptimizationTests(unittest.TestCase):
             self.workspace) / self.main_build_file).read_text())
 
         self.assertIn("\"another-useless.cc\"",
-                         (Path(self.workspace) / self.main_build_file).read_text())
+                      (Path(self.workspace) / self.main_build_file).read_text())
         self.assertIn("\"another-useless.h\"",
-                         (Path(self.workspace) / self.main_build_file).read_text())
+                      (Path(self.workspace) / self.main_build_file).read_text())
