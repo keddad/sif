@@ -30,6 +30,16 @@ class CppOptimizationTests(unittest.TestCase):
     main_build_file = "main/BUILD"
     lib_build_file = "lib/BUILD"
 
+    expected_hello_world = """
+cc_binary(
+    name = "hello-world",
+    srcs = ["hello-world.cc"],
+    deps = [
+        ":hello-greet",
+        "//lib:hello-time",
+    ],
+)"""
+
     def setUp(self):
         self.temp_dir, self.workspace = copy_testfiles(CPPEXAMPLE_WORKSPACE)
         self.sif = get_sif()
@@ -38,7 +48,7 @@ class CppOptimizationTests(unittest.TestCase):
         # Otherwise Bazel servers from previous tests keep running, eventually causing OOM
         res = subprocess.run(["bazel", "shutdown"],
                              shell=True, cwd=self.workspace)
-        
+
         if res.returncode != 0:
             raise RuntimeError("Can't kill Bazel")
 
@@ -61,8 +71,8 @@ class CppOptimizationTests(unittest.TestCase):
 
         self.assertEqual(res.returncode, 0)
 
-        self.assertNotIn(
-            ":useless", (Path(self.workspace) / self.main_build_file).read_text())
+        self.assertIn(
+            self.expected_hello_world, (Path(self.workspace) / self.main_build_file).read_text())
 
     def test_checkers(self):
         res = subprocess.run([self.sif, "--workspace", self.workspace,
@@ -94,8 +104,8 @@ class CppOptimizationTests(unittest.TestCase):
         self.assertEqual((Path(self.workspace) / self.lib_build_file).read_text(), (Path(
             CPPEXAMPLE_WORKSPACE) / self.lib_build_file).read_text(), "Lib was changed!")
 
-        self.assertNotIn("\":useless\"", (Path(
-            self.workspace) / self.main_build_file).read_text())
+        self.assertIn(
+            self.expected_hello_world, (Path(self.workspace) / self.main_build_file).read_text())
 
         self.assertNotIn("\"another-useless.cc\"",
                          (Path(self.workspace) / self.main_build_file).read_text())
@@ -108,10 +118,44 @@ class CppOptimizationTests(unittest.TestCase):
 
         self.assertEqual(res.returncode, 0)
 
-        self.assertNotIn("\":useless\"", (Path(
-            self.workspace) / self.main_build_file).read_text())
+        self.assertIn(
+            self.expected_hello_world, (Path(self.workspace) / self.main_build_file).read_text())
 
         self.assertIn("\"another-useless.cc\"",
                       (Path(self.workspace) / self.main_build_file).read_text())
         self.assertIn("\"another-useless.h\"",
                       (Path(self.workspace) / self.main_build_file).read_text())
+
+    def test_partial_select(self):
+        res = subprocess.run([self.sif, "--workspace", self.workspace,
+                             "--label", "//main:hello-world_selects", "--params", "deps"])
+
+        self.assertEqual(res.returncode, 0)
+
+        expected_hello_world_selects = """
+cc_binary(
+    name = "hello-world_selects",
+    srcs = ["hello-world.cc"],
+    deps = [
+        ":hello-greet",
+        "//lib:hello-time",
+    ] + select(
+        {"//conditions:default": [
+            ":useless_selected",
+        ]},
+    ),
+)"""
+
+        self.assertIn(
+            expected_hello_world_selects, (Path(self.workspace) / self.main_build_file).read_text())
+
+    def test_partial_selectonly(self):
+        res = subprocess.run([self.sif, "--workspace", self.workspace,
+                             "--label", "//main:hello-world_selectsonly", "--params", "deps"])
+
+        self.assertEqual(res.returncode, 0)
+
+        self.assertEqual(
+            (Path(self.workspace) / self.main_build_file).read_text(),
+            (Path(CPPEXAMPLE_WORKSPACE) / self.main_build_file).read_text()
+        )

@@ -62,6 +62,11 @@ func Optimize(label, workspacePath string, params []string, verbose bool, bazelA
 				continue
 			}
 
+			if err == bazel.ErrNotListAssingment {
+				log.Printf("Can't optimize param: no list assingment. Are you using selects?")
+				continue
+			}
+
 			return false, err
 		}
 

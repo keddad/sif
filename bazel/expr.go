@@ -1,7 +1,6 @@
 package bazel
 
 import (
-	"errors"
 	"io/ioutil"
 	"strings"
 
@@ -9,21 +8,59 @@ import (
 	"github.com/bazelbuild/buildtools/edit"
 )
 
+func retriveLists(expr *build.Expr) []*build.ListExpr {
+	ret := make([]*build.ListExpr, 0)
+
+	switch (*expr).(type) {
+	case *build.ListExpr:
+		ret = append(ret, (*expr).(*build.ListExpr))
+	case *build.BinaryExpr:
+		binExpr := (*expr).(*build.BinaryExpr)
+
+		ret = append(ret, retriveLists(&binExpr.X)...)
+		ret = append(ret, retriveLists(&binExpr.Y)...)
+	}
+
+	return ret
+}
+
+func removeListElem(expr *build.Expr, elem string) error {
+	switch (*expr).(type) {
+	case *build.ListExpr:
+		return dumbListRemoval((*expr).(*build.ListExpr), elem)
+	case *build.BinaryExpr:
+		binExpr := (*expr).(*build.BinaryExpr)
+
+		xerr := removeListElem(&binExpr.X, elem)
+		yerr := removeListElem(&binExpr.Y, elem)
+
+		if xerr == nil || yerr == nil {
+			return nil
+		}
+
+		return xerr
+	}
+
+	return ErrNotListAssingment
+}
+
 func listStrings(expr *build.AssignExpr) ([]string, error) {
 	ret := make([]string, 0)
 
-	switch expr.RHS.(type) {
-	case *build.ListExpr:
-	default:
-		return nil, errors.New("param is not a list")
+	lists := retriveLists(&expr.RHS)
+
+	if len(lists) == 0 {
+		return nil, ErrNotListAssingment
 	}
 
-	for _, elem := range expr.RHS.(*build.ListExpr).List {
-		switch elem.(type) {
-		case *build.StringExpr:
-			ret = append(ret, elem.(*build.StringExpr).Token)
-		default:
-			return nil, errors.New("list member is not a string")
+	for _, list := range lists {
+		for _, elem := range list.List {
+			switch elem.(type) {
+			case *build.StringExpr:
+				ret = append(ret, elem.(*build.StringExpr).Token)
+			default:
+				continue
+			}
 		}
 	}
 
@@ -79,7 +116,7 @@ func dumbListRemoval(li *build.ListExpr, toDelete string) error {
 	li.List = all
 
 	if !deleted {
-		return errors.New("no such list element")
+		return ErrNoSuchListElem
 	}
 
 	return nil
@@ -120,10 +157,10 @@ func DeleteEntryFromFile(contents []byte, ruleName string, paramName string, opt
 	}
 
 	if targetExpr.RHS == nil {
-		return nil, errors.New("wtf") // What a Terrible Failure! Probably can't happen with valid file
+		return nil, ErrInvalidInvariant
 	}
 
-	err = dumbListRemoval(targetExpr.RHS.(*build.ListExpr), optionToDelete)
+	err = removeListElem(&targetExpr.RHS, optionToDelete)
 	newFile := build.Format(origBuildFile)
 
 	return newFile, err
