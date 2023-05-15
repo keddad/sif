@@ -132,6 +132,10 @@ func ExtractEntriesFromFile(contents []byte, ruleName string, paramName string) 
 
 	targetRule := edit.FindRuleByName(origBuildFile, ruleName)
 
+	if targetRule == nil {
+		return nil, err
+	}
+
 	depsList, err := extractEntriesFromRule(targetRule, paramName)
 
 	if err != nil {
